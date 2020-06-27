@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block title %}同步设置{% endblock %}
+{% block css %}
+
+    <!-- Theme style -->
+
+    <!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+    <link rel="stylesheet" href="static/plugins/messenger/messenger-theme-future.css">
+    <link rel="stylesheet" href="static/plugins/messenger/messenger.css">
+
+    <link rel="stylesheet" href="static/plugins/datatables/dataTables.bootstrap.css">
+
+    {#    <link rel="stylesheet" href="http://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">#}
+{% endblock %}
+
+{% block content %}
+
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            同步设置
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="/"><i class="fa fa-dashboard"></i> 主页</a></li>
+            <li>同步设置</li>
+        </ol>
+    </section>
+
+    <!-- Main content -->
+
+
+    <section class="content">
+
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box">
+                    <!-- /.box-header -->
+
+                    <div class="box-body">
+
+                        <table class="table  table-hover"
+                               style="border-left:3px solid green;border-bottom:1px solid green" id="details_table">
+                            <thead>
+                            <tr>
+                                <th>任务名称</th>
+                                <th>任务状态</th>
+                                <th>下次同步时间</th>
+                                <th>操作</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+
+                            <tr>
+                                <td><b>{{ resp.id }}</b></td>
+                                {% if  resp.next_run_time %}
+                                    <td>同步中</td>
+                                    <td>{{ resp.next_run_time }}</td>
+                                {% else %}
+                                    <td>无同步任务</td>
+                                    <td>无</td>
+                                {% endif %}
+
+                                <td>
+                                    <div>
+                                        <button type="button" class="btn btn-info btn-xs"
+                                                onclick="javascript:window.location.href='/images_sync?action=add'">
+                                            添加同步任务
+                                        </button>
+
+                                        <button type="button" class="btn btn-info btn-xs"
+                                                onclick="remove_scheduler()">
+                                            删除同步任务
+                                        </button>
+                                    </div>
+                                </td>
+
+                            </tr>
+
+
+                            </tbody>
+                        </table>
+
+                        <div class="col-md-offset-6" style="margin: 10px 0;">
+
+
+                            <button type="button" class="btn btn-info"
+                                    onclick="sync()">立即同步
+                                <i class="fa fa-refresh "></i></button>
+
+
+                        </div>
+                    </div>
+
+
+                    <!-- /.box-body -->
+                </div>
+                <!-- /.box -->
+
+
+            </div>
+        </div>
+
+
+    </section>
+
+
+
+
+    <!-- /.content -->
+
+{% endblock %}
+
+
+
+{% block script %}
+
+    <script src="static/plugins/messenger/messenger.min.js"></script>
+
+    <!-- AdminLTE App -->
+    <script src="static/dist/js/app.min.js"></script>
+    <script src="static/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="static/plugins/datatables/dataTables.bootstrap.min.js"></script>
+    <script src="static/plugins/echarts/echarts.min.js"></script>
+
+
+
+
+    <script>
+        Messenger.options = {
+            extraClasses: 'messenger-fixed messenger-on-bottom messenger-theme-air messenger-on-right'
+        }
+        messenger = Messenger();
+
+
+        function sync() {
+            $.getJSON('/images_sync?action=refresh', function (data) {
+                if (JSON.stringify(data) != '{}') {
+                    if (data.status == "success") {
+                        messenger.post({
+                            message: data.content,
+                            type: "success"
+                        });
+                        setTimeout(" window.location.href = '/index'", 1000);
+                    } else if (data.status ==  "error")
+                        messenger.post({
+                            message: data.content,
+                            type: "error"
+                        })
+                }
+
+            })
+        };
+        function remove_scheduler() {
+            $.getJSON('/images_sync?action=remove', function (data) {
+                if (JSON.stringify(data) != '{}') {
+                    if (data.status == "success") {
+                        messenger.post({
+                            message: data.content,
+                            type: "success"
+                        });
+                        setTimeout(" window.location.href = '/index'", 1000);
+                    } else if (data.status ==  "error")
+                        messenger.post({
+                            message: data.content,
+                            type: "error"
+                        })
+                }
+
+            })
+        }
+
+    </script>
+
+{% endblock %}

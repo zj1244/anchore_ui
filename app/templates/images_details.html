@@ -1,0 +1,502 @@
+{% extends 'base.html' %}
+{% block title %}镜像详情{% endblock %}
+{% block css %}
+
+    <!-- Theme style -->
+
+    <!-- AdminLTE Skins. Choose a skin from the css/skins
+         folder instead of downloading all of them to reduce the load. -->
+    <link rel="stylesheet" href="static/plugins/messenger/messenger-theme-future.css">
+    <link rel="stylesheet" href="static/plugins/messenger/messenger.css">
+
+    <link rel="stylesheet" href="static/plugins/datatables/dataTables.bootstrap.css">
+
+    {#    <link rel="stylesheet" href="http://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">#}
+{% endblock %}
+
+{% block content %}
+
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1>
+            镜像详情
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="/"><i class="fa fa-dashboard"></i> 主页</a></li>
+            <li>分析详情</li>
+            <li>镜像详情</li>
+        </ol>
+    </section>
+
+    <!-- Main content -->
+
+
+    <section class="content">
+
+        <div class="row">
+
+
+            <div class="col-md-12">
+                <!-- AREA CHART -->
+
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h4>
+                            <span class="label label-info">项目：{{ resp.project_name }}</span>
+                            <span class="label label-info">发布者：{{ resp.publisher }}</span>
+                            <span class="label label-info">docker镜像：{{ resp.fulltag }}</span>
+                        </h4>
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i
+                                    class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div id="vuln_trend" style="height: 323px;"></div>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+            </div>
+
+
+            <div class="col-md-6">
+                <!-- AREA CHART -->
+                <div class="box box-danger">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">影响组件统计</h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i
+                                    class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div id="package_pie" style="height: 323px; width: 627px;"></div>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+                <!-- /.box -->
+
+
+            </div>
+            <!-- /.col (LEFT) -->
+            <div class="col-md-6">
+                <!-- LINE CHART -->
+                <div class="box box-info">
+                    <div class="box-header with-border">
+                        <h3 class="box-title">危害级别统计</h3>
+
+                        <div class="box-tools pull-right">
+                            <button type="button" class="btn btn-box-tool" data-widget="collapse"><i
+                                    class="fa fa-minus"></i>
+                            </button>
+                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i
+                                    class="fa fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="box-body">
+                        <div id="risk_pie" style="height: 323px; width: 627px;"></div>
+                    </div>
+                    <!-- /.box-body -->
+                </div>
+                <!-- /.box -->
+
+
+            </div>
+            <!-- /.col (RIGHT) -->
+        </div>
+
+
+        {#    <div class="row">#}
+        {#                <div class="col-lg-12">#}
+        {#                    <div class="ibox float-e-margins">#}
+        {#                        <div class="ibox-title">#}
+        {#                            <h5> 漏洞详情 </h5>#}
+        {#                            <div class="ibox-tools">#}
+        {#                                <a class="collapse-link">#}
+        {#                                    <i class="fa fa-chevron-up"></i>#}
+        {#                                </a>#}
+        {#                                <a class="close-link">#}
+        {#                                    <i class="fa fa-times"></i>#}
+        {#                                </a>#}
+        {#                            </div>#}
+        {#                        </div>#}
+        {##}
+        {#                        <div class="ibox-content">#}
+        {##}
+        {##}
+        {#                            <table class="table  table-hover"#}
+        {#                                   style="border-left:3px solid green;border-bottom:1px solid green" id="details_table">#}
+        {#                                <thead>#}
+        {#                                <tr>#}
+        {#                                    <th>漏洞编号</th>#}
+        {#                                    <th>包名</th>#}
+        {#                                    <th>当前版本</th>#}
+        {#                                    <th>包类型</th>#}
+        {#                                    <th>等级</th>#}
+        {#                                    <th>父级依赖包</th>#}
+        {#                                    <th>升级至最新版本</th>#}
+        {#                                    <th>升级至同版本</th>#}
+        {#                                    <th>poc数目</th>#}
+        {#                                </tr>#}
+        {#                                </thead>#}
+        {#                                <tbody>#}
+        {##}
+        {##}
+        {#                                {% for vul in resp.vulnerabilities %}#}
+        {#                                    <tr>#}
+        {#                                        <td><b><a href="{{ vul.url }}" target="_Blank">{{ vul.vuln }}</a></b></td>#}
+        {#                                        {% if  vul.package_type == 'java' %}#}
+        {#                                            <td>{{ vul.package_name }}</td>#}
+        {#                                        {% else %}#}
+        {#                                            <td>{{ vul.package_name }}</td>#}
+        {#                                        {% endif %}#}
+        {##}
+        {#                                        <td>{{ vul.package_version }}</td>#}
+        {#                                        <td>{{ vul.package_type }}</td>#}
+        {#                                        <td>{{ vul.severity }}</td>#}
+        {#                                        <td>{{ vul.parents }}</td>#}
+        {#                                        <td>{{ vul.fix }}</td>#}
+        {#                                        <td>{{ vul.second_fix_version }}</td>#}
+        {#                                        <td>{{ vul.poc_count }}</td>#}
+        {##}
+        {##}
+        {#                                    </tr>#}
+        {#                                {% endfor %}#}
+        {##}
+        {##}
+        {#                                </tbody>#}
+        {#                            </table>#}
+        {#                            <div class="row">#}
+        {#                                <div class="col-sm-5">#}
+        {##}
+        {##}
+        {#                                    <button type="button" class="btn btn-info" id="download_vlun"#}
+        {#                                            onclick="export_vlun('{{ resp.project_name }}.xlsx')">导出#}
+        {#                                        <i class="fa fa-download"></i></button>#}
+        {#                                    <button type="button" class="btn btn-info" onclick="setClipboard()">#}
+        {#                                        复制临时URL#}
+        {#                                    </button>#}
+        {#                                </div>#}
+        {##}
+        {#                            </div>#}
+        {##}
+        {#                        </div>#}
+        {#                    </div>#}
+        {##}
+        {#                </div>#}
+        {##}
+        {#            </div>#}
+
+
+        <div class="row">
+            <div class="col-md-12">
+
+                <div class="box">
+                    <!-- /.box-header -->
+
+                    <div class="box-body">
+                        <table class="table  table-hover"
+                               style="border-left:3px solid green;border-bottom:1px solid green" id="details_table">
+                            <thead>
+                            <tr>
+                                <th>漏洞编号</th>
+                                <th>漏洞包名</th>
+                                <th>当前版本</th>
+                                <th>包类型</th>
+                                <th>等级</th>
+                                <th>父级依赖包</th>
+                                <th>升级至最新版本</th>
+                                <th>升级至同版本</th>
+                                <th>POC数目</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+
+
+                            {% for vul in resp.vulnerabilities %}
+                                <tr>
+                                    <td><b><a href="{{ vul.url }}" target="_Blank">{{ vul.vuln }}</a></b></td>
+                                    {% if  vul.package_type == 'java' %}
+                                        <td>{{ vul.package_name }}</td>
+                                    {% else %}
+                                        <td>{{ vul.package_name }}</td>
+                                    {% endif %}
+
+                                    <td>{{ vul.package_version }}</td>
+                                    <td>{{ vul.package_type }}</td>
+                                    <td>{{ vul.severity }}</td>
+                                    <td>{{ vul.parents }}</td>
+                                    <td>{{ vul.fix }}</td>
+                                    <td>{{ vul.second_fix_version }}</td>
+                                    <td>{{ vul.poc_count }}</td>
+
+
+                                </tr>
+                            {% endfor %}
+
+
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                    <!-- /.box-body -->
+                </div>
+                <!-- /.box -->
+
+
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col-sm-5">
+                <button type="button" class="btn btn-info" id="download_vlun"
+                        onclick="export_vlun('{{ resp.project_name }}.xlsx')">导出
+                    <i class="fa fa-download"></i>
+                </button>
+                <button type="button" class="btn btn-info" onclick="setClipboard()">
+                    复制临时URL
+                    <i class="fa fa-copy"></i>
+                </button>
+                <button type="button" class="btn btn-info" data-toggle="modal" data-target="#pom_modal">查看POM文件
+                    <i class="fa fa-eye"></i>
+                </button>
+                <div class="modal fade" id="pom_modal" tabindex="-1" role="dialog" aria-labelledby="pom_modal_label"
+                     aria-hidden="true">
+                    <div class="modal-dialog" style="width:1000px">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;
+                                </button>
+                                <h4 class="modal-title" id="pom_modal_label">查看pom.xml</h4>
+                            </div>
+                            <div class="modal-body" style="height:550px">
+                                <textarea class="form-control" rows="25">
+
+                                    {{ pom_file }}
+                                </textarea>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">关闭</button>
+                            </div>
+                        </div><!-- /.modal-content -->
+                    </div><!-- /.modal -->
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+
+    <!-- /.content -->
+
+{% endblock %}
+
+
+
+{% block script %}
+
+    <script src="static/plugins/messenger/messenger.min.js"></script>
+    <script src="static/plugins/sheetjs/xlsx.core.min.js"></script>
+    <!-- AdminLTE App -->
+    <script src="static/dist/js/app.min.js"></script>
+    <script src="static/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="static/plugins/datatables/dataTables.bootstrap.min.js"></script>
+    <script src="static/plugins/echarts/echarts.min.js"></script>
+    <script src="static/dist/js/xlsx.core.min.js"></script>
+
+
+
+    <script type="text/javascript">
+        Messenger.options = {
+            extraClasses: 'messenger-fixed messenger-on-bottom messenger-theme-air messenger-on-right'
+        }
+        messenger = Messenger();
+
+        function setClipboard() {
+            var tempInput = document.createElement("input");
+            var value = window.location.host + "/tmp_link?image_id={{ image_id }}";
+            tempInput.style = "position: absolute; left: -1000px; top: -1000px";
+            tempInput.value = value;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+        }
+
+        function sheet2blob(sheet, sheetName) {
+            sheetName = sheetName || 'sheet1';
+            var workbook = {
+                SheetNames: [sheetName],
+                Sheets: {}
+            };
+            workbook.Sheets[sheetName] = sheet; // 生成excel的配置项
+
+            var wopts = {
+                bookType: 'xlsx', // 要生成的文件类型
+                bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+                type: 'binary'
+            };
+            var wbout = XLSX.write(workbook, wopts);
+            var blob = new Blob([s2ab(wbout)], {
+                type: "application/octet-stream"
+            }); // 字符串转ArrayBuffer
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+
+            return blob;
+        }
+
+        function openDownloadDialog(url, saveName) {
+            if (typeof url == 'object' && url instanceof Blob) {
+                url = URL.createObjectURL(url); // 创建blob地址
+            }
+            var aLink = document.createElement('a');
+            aLink.href = url;
+            aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+            var event;
+            if (window.MouseEvent) event = new MouseEvent('click');
+            else {
+                event = document.createEvent('MouseEvents');
+                event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            }
+            aLink.dispatchEvent(event);
+        }
+
+        function export_vlun(save_name) {
+            var sheet = XLSX.utils.table_to_sheet($('table')[0], {raw: true})
+
+            openDownloadDialog(sheet2blob(sheet), save_name);
+        }
+
+
+        $(document).ready(function () {
+            $('#details_table').DataTable({
+                "searching": false,
+                'order': [1, 'desc']
+            });
+        });
+
+        var risk_pie = echarts.init($("#risk_pie")[0]);
+        var option = {
+
+            tooltip: {
+                trigger: 'item',
+                formatter: "总数 : {c} ({d}%)"
+            },
+            legend: {
+                orient: 'vertical',
+                x: 'left'
+            },
+            series: [
+                {
+                    type: 'pie',
+                    data: {{ total_risk |safe }}
+                }
+            ]
+        };
+        risk_pie.setOption(option);
+
+        var package_pie = echarts.init($("#package_pie")[0]);
+        var option = {
+
+            tooltip: {
+                trigger: 'item',
+                formatter: "总数 : {c} ({d}%)"
+            },
+            legend: {
+                orient: 'vertical',
+                x: 'left'
+            },
+            series: [
+                {
+                    center: ['60%', '50%'],
+                    type: 'pie',
+                    data: {{ total_package |safe }}
+                }
+            ]
+        };
+        package_pie.setOption(option);
+
+        var vuln_trend = echarts.init($("#vuln_trend")[0]);
+        var option = {
+            title: {
+                text: '漏洞趋势'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#6a7985'
+                    }
+                }
+            },
+            legend: {
+                data: ['严重', '高', '中', '低']
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: {{ vuln_trend.created_at |unicode2str|safe }}
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value'
+                }
+            ],
+            series: [
+                {
+                    name: '严重',
+                    type: 'line',
+                    areaStyle: {},
+                    data: {{ vuln_trend.critical }}
+                },
+                {
+                    name: '高',
+                    type: 'line',
+                    areaStyle: {},
+                    data: {{ vuln_trend.high }}
+                },
+                {
+                    name: '中',
+                    type: 'line',
+                    areaStyle: {},
+                    data: {{ vuln_trend.medium }}
+                },
+                {
+                    name: '低',
+                    type: 'line',
+                    areaStyle: {},
+                    data: {{ vuln_trend.low }}
+                },
+            ]
+        };
+        vuln_trend.setOption(option);
+    </script>
+
+{% endblock %}
