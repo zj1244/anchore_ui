@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 import json
 import base64
+import time
+import re
+import sys
+import random
+import requests
+
 from datetime import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
-
-import time
-import re, sys, random
-import requests
 from config import *
-from app import mongo, apscheduler, log
+from app import mongo, log
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -32,22 +34,6 @@ def timestamp2str(date):
         return ""
 
 
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        pass
-
-    try:
-        import unicodedata
-        unicodedata.numeric(s)
-        return True
-    except (TypeError, ValueError):
-        pass
-    return False
-
-
 def get_header():
     header = {
         'User-Agent': random.choice(USER_AGENTS),
@@ -56,35 +42,22 @@ def get_header():
         'Connection': 'keep-alive',
         'Accept-Encoding': 'gzip, deflate'
     }
-    log.info("header=" + str(header))
     return header
-
-
-def dict2str(dictionary):
-    try:
-        if type(dictionary) == str:
-            return dictionary
-        return json.dumps(dictionary)
-    except TypeError as e:
-        log.exception("conv dict failed : %s" % e)
 
 
 def req(url, user="", pwd=""):
     resp_json = {}
-
     try:
         if user and pwd:
             session = requests.session()
             session.auth = (user, pwd)
 
             resp = session.get(url, headers={'Connection': 'close'})
-
-            if resp.status_code == 200:
-                resp_json = resp.json()
         else:
             resp = requests.get(url=url)
-            if resp.status_code == 200:
-                resp_json = resp.json()
+
+        if resp.status_code == 200:
+            resp_json = resp.json()
     except:
         log.exception("req_url:%s" % url)
 
@@ -101,9 +74,8 @@ def get_vuln_trend(project_name="", n=5):
 
     }
     try:
-
-        mongo_anchore_result = mongo.conn[MONGO_DB_NAME][MONGO_SCAN_RESULT_COLL]
-        images = mongo_anchore_result.find({"project_name": project_name}).sort("created_at", -1).limit(n)
+        images = mongo.conn[MONGO_DB_NAME][MONGO_SCAN_RESULT_COLL].find({"project_name": project_name}).sort(
+            "created_at", -1).limit(n)
 
         if images.count():
             for i in images:
@@ -209,35 +181,28 @@ def get_parents(input_dependency):
     for dependency in dependency_list:
 
         child_jar = []
-        parents_jar = ""
-        parents_jar_name=""
+        full_parents_jar = ""
+        parents_jar_name = ""
         match_obj = re.findall(r"- (.+):(.+):(.+):(.+):(.+)", dependency)
         if match_obj:
-            parents_jar = ":".join([match_obj[0][0], match_obj[0][1], match_obj[0][3]])
-            parents_jar_name=match_obj[0][1]
-            for i in range(1, len(match_obj)):
-                child_jar.append(match_obj[i][1])
+            full_parents_jar = ":".join([match_obj[0][0], match_obj[0][1], match_obj[0][3]])
 
+            parents_jar_name = match_obj[0][1]
+
+            child_jar = [x[1] for x in match_obj[1:]]
 
         if len(child_jar) == 0:
             child_jar = [parents_jar_name]
         else:
             child_jar.append(match_obj[0][1])
 
-        ouput.append({"parents": parents_jar, "child": child_jar})
+        ouput.append({"parents": full_parents_jar, "child": child_jar})
     return ouput
 
 
 def format_version(version, point):
-    k = 0
-
-    version_list = list(version)
-    for i in range(len(version_list)):
-        if version_list[i] == ".":
-            k += 1
-        if k == point:
-            return version[:i + 1]
-    return ""
+    version_list = version.split(".")
+    return ".".join(version_list[:point]) + "."
 
 
 def get_version(package, image_id):
@@ -247,7 +212,9 @@ def get_version(package, image_id):
     }
     group_id, package_name, current_package_version = package.split(":")
     if current_package_version.count(".") in [2, 3]:  # 8.0.28 or 2.2.2.RELEASE
+
         current_package_version = format_version(current_package_version, 2)
+
     elif current_package_version.count("-") == 1:
         current_package_version = current_package_version[:current_package_version.find("-")]
     else:
@@ -286,7 +253,6 @@ def get_version(package, image_id):
                     package_version["last_version"] = version_list[0]
                     fix_version[package_name] = package_version
                     break
-
 
     return package_version
 
