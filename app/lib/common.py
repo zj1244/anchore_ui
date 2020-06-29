@@ -9,8 +9,7 @@ import random
 import requests
 
 from datetime import datetime
-from requests.adapters import HTTPAdapter
-from urllib3.util import Retry
+from tenacity import retry, wait_fixed, stop_after_attempt, before_log
 from config import *
 from app import mongo, log
 
@@ -39,10 +38,16 @@ def get_header():
         'User-Agent': random.choice(USER_AGENTS),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Connection': 'keep-alive',
+        'Connection': 'close',
         'Accept-Encoding': 'gzip, deflate'
     }
     return header
+
+
+@retry(wait=wait_fixed(7), stop=stop_after_attempt(5))
+def retry_get(url, **kwargs):
+    log.debug(url)
+    return requests.get(url=url, headers=get_header(), **kwargs)
 
 
 def req(url, user="", pwd=""):
@@ -52,9 +57,9 @@ def req(url, user="", pwd=""):
             session = requests.session()
             session.auth = (user, pwd)
 
-            resp = session.get(url, headers={'Connection': 'close'})
+            resp = session.get(url=url, headers=get_header())
         else:
-            resp = requests.get(url=url)
+            resp = requests.get(url=url, headers=get_header())
 
         if resp.status_code == 200:
             resp_json = resp.json()
@@ -221,20 +226,15 @@ def get_version(package, image_id):
         log.info("未处理的版本号:%s image_id=%s" % (package, image_id))
 
     if fix_version.has_key(package_name):
-        print "找到%s的版本是%s" % (package_name, fix_version[package_name])
+        log.debug("找到%s的版本是%s" % (package_name, fix_version[package_name]))
         package_version = fix_version[package_name]
     else:
-        # 如果是返回码不是200就死循环去获取，200就跳出
         while True:
 
             url = "https://mvnrepository.com/artifact/%s/%s" % (group_id, package_name)
-            session = requests.Session()
-            retry = Retry(connect=3, backoff_factor=0.5)
-            adapter = HTTPAdapter(max_retries=retry)
-            session.mount('http://', adapter)
-            session.mount('https://', adapter)
+            log.debug(url)
 
-            resp = session.get(url=url, verify=False, headers=get_header())
+            resp = retry_get(url=url, verify=False)
             if resp.status_code == 403:
                 log.info("查找包异常，status=%s" % resp.status_code)
                 time.sleep(5)
@@ -244,7 +244,6 @@ def get_version(package, image_id):
             else:
                 version_list = re.findall(r'class="vbtn release">(.+?)</a>', resp.text)
                 if version_list:
-                    # print "添加一个包%s到内存%s" % (package_name, version_list[0])
                     for version_item in version_list:
                         if version_item.startswith(current_package_version):
                             package_version["second_version"] = version_item
@@ -260,24 +259,26 @@ def get_version(package, image_id):
 def sync_data(imageId=None):
     try:
         mongo_anchore_result = mongo.conn[MONGO_DB_NAME][MONGO_SCAN_RESULT_COLL]
-        images_num = mongo_anchore_result.find_one({}, sort=[('created_at', -1)])
+        all_images = mongo_anchore_result.find({}, {"imageId": 1, "created_at": 1}, sort=[('created_at', -1)])
 
         resp_summaries = req(ANCHORE_API + "/summaries/imagetags", USERNAME, PASSWORD)
-        log.info(len(resp_summaries))
+
         if resp_summaries:
             if imageId:
                 for resp_dict in resp_summaries:
                     if resp_dict["imageId"] == imageId:
                         resp_summaries = [resp_dict]
                         break
+                else:
+                    return True
             else:
 
                 resp_summaries.sort(key=lambda x: x["created_at"], reverse=True)
-                if resp_summaries[0]["created_at"] == images_num["created_at"]:
+                if resp_summaries[0]["created_at"] == all_images[0]["created_at"]:
                     resp_summaries = []
+            all_images_id = map(lambda x: x["imageId"], all_images)
             for image in resp_summaries:
-
-                if mongo_anchore_result.find({"imageId": image["imageId"]}).count() == 0:
+                if image["imageId"] not in all_images_id:
                     risk = {
                         'critical': 0,
                         'high': 0,
@@ -290,7 +291,7 @@ def sync_data(imageId=None):
                                             image['fulltag'].rfind("/") + 1:image['fulltag'].rfind(":")]
 
                     if image["analysis_status"] == "analyzed":
-                        log.info("正在处理%s" % image["imageId"])
+                        log.info("正在同步:%s" % image["imageId"])
                         resp_vlun = req(ANCHORE_API + "/images/by_id/" + image["imageId"] + "/vuln/all",
                                         USERNAME, PASSWORD)
                         if resp_vlun:
@@ -300,7 +301,7 @@ def sync_data(imageId=None):
                             resp_dependency = req(
                                 GET_DEPENDENCY_API + "/dependency/result/?docker_url=" + image['fulltag'])
 
-                            if resp_dependency and resp_dependency["code"] == 200:
+                            if resp_dependency:
                                 dependency_result = base64.b64decode(resp_dependency["result"])
                                 dependency_list = get_parents(dependency_result)
                                 image["publisher"] = resp_dependency["publisher"]
@@ -350,7 +351,7 @@ def sync_data(imageId=None):
 
                                             else:
                                                 log.warning(
-                                                    "【%s】包类型未处理：%s" % (vlun_item["package"], image["imageId"]))
+                                                    "[%s][%s]包类型未处理：%s" % (vlun_item["package"],vlun_item["package_type"], image["imageId"]))
                                                 vlun_item["fix"] = ""
                                                 vlun_item["second_fix_version"] = ""
                                         except Exception, e:
@@ -365,7 +366,6 @@ def sync_data(imageId=None):
 
                             image["risk"] = risk
 
-
                     elif image["analysis_status"] == "analysis_failed":
                         image["vulnerabilities"] = []
                         image["affected_package_count"] = 0
@@ -373,9 +373,11 @@ def sync_data(imageId=None):
                     else:
                         log.info("【扫描中的任务】created_at=%s,fulltag=%s" % (
                             timestamp2str(image["created_at"]), image["fulltag"]))
+
                     if image["analysis_status"] == "analyzed" or image["analysis_status"] == "analysis_failed":
                         log.info("添加镜像：%s" % image["imageId"])
                         mongo_anchore_result.insert_one(image)
+
         return True
     except:
         log.exception("同步数据出错")
@@ -383,5 +385,5 @@ def sync_data(imageId=None):
 
 
 if __name__ == '__main__':
-    sync_data("6fdf5b6407344e45c469e0364f69fc744f40407a5fa28f18269fc819cb2bef6e")
+    sync_data("3b84fb5810e632c89ae2f23a99eeda155dc552db4269fce1be68480c9f799967")
     # get_version("spring-boot-starter-validation:1.5.9.RELEASE")

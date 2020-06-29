@@ -1,3 +1,4 @@
+tenacity
 pymongo==3.7.2
 APScheduler==3.6.3
 Flask_APScheduler==1.11.0
