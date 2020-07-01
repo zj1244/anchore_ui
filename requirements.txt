@@ -2,5 +2,5 @@ tenacity
 pymongo==3.7.2
 APScheduler==3.6.3
 Flask_APScheduler==1.11.0
-Flask==0.12.2
+Flask==1.0
 requests==2.24.0
