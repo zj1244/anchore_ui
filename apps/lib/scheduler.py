@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
 from common import sync_data
-from app import apscheduler, log
+from apps import apscheduler, log
 
 
 class Scheduler(object):
@@ -30,7 +30,7 @@ class Scheduler(object):
 
             # job_unit = "hours" if job_unit == "hours" else "minutes"
 
-            job = apscheduler.add_job(func="app.lib.common:sync_data", id=self.scheduler_name,
+            job = apscheduler.add_job(func="apps.lib.common:sync_data", id=self.scheduler_name,
                                       trigger="interval",
                                       replace_existing=True, **{job_unit: job_time})
         except:

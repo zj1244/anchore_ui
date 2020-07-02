@@ -2,7 +2,7 @@
 
 from functools import wraps
 from flask import session, url_for, redirect
-from app import log
+from apps import log
 
 
 def login_check(f):

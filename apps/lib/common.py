@@ -7,11 +7,11 @@ import re
 import sys
 import random
 import requests
-
+import collections
 from datetime import datetime
 from tenacity import retry, wait_fixed, stop_after_attempt, before_log
 from config import *
-from app import mongo, log
+from apps import mongo, log
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -96,6 +96,11 @@ def get_vuln_trend(project_name="", n=5):
     return final_result
 
 
+def validate_is_dict(option, value):
+    if not isinstance(value, dict):
+        raise TypeError("%s must be an instance of dict" % (option,))
+
+
 def get_images_details(image_id=""):
     images_details = {}
 
@@ -167,9 +172,13 @@ def get_project():
                 final_result.append(project_result)
 
             except:
-
+                sync_data(i["imageId"], force=True)
                 log.exception(i)
     return final_result
+
+
+def save_dependency():
+    pass
 
 
 def get_parents(input_dependency):
@@ -186,12 +195,13 @@ def get_parents(input_dependency):
     for dependency in dependency_list:
 
         child_jar = []
-        full_parents_jar = ""
+        parents_and_version = ""
         parents_jar_name = ""
+        group_id = ""
         match_obj = re.findall(r"- (.+):(.+):(.+):(.+):(.+)", dependency)
         if match_obj:
-            full_parents_jar = ":".join([match_obj[0][0], match_obj[0][1], match_obj[0][3]])
-
+            parents_and_version = ":".join([match_obj[0][1], match_obj[0][3]])
+            group_id = match_obj[0][0]
             parents_jar_name = match_obj[0][1]
 
             child_jar = [x[1] for x in match_obj[1:]]
@@ -201,7 +211,7 @@ def get_parents(input_dependency):
         else:
             child_jar.append(match_obj[0][1])
 
-        ouput.append({"parents": full_parents_jar, "child": child_jar})
+        ouput.append({"group_id": group_id, "parents": parents_and_version, "child": child_jar})
     return ouput
 
 
@@ -210,12 +220,12 @@ def format_version(version, point):
     return ".".join(version_list[:point]) + "."
 
 
-def get_version(package, image_id):
+def get_version(group_id, package, image_id):
     package_version = {
         "last_version": "",
-        "second_version": ""
+        "same_version": ""
     }
-    group_id, package_name, current_package_version = package.split(":")
+    package_name, current_package_version = package.split(":")
     if current_package_version.count(".") in [2, 3]:  # 8.0.28 or 2.2.2.RELEASE
 
         current_package_version = format_version(current_package_version, 2)
@@ -246,7 +256,7 @@ def get_version(package, image_id):
                 if version_list:
                     for version_item in version_list:
                         if version_item.startswith(current_package_version):
-                            package_version["second_version"] = version_item
+                            package_version["same_version"] = version_item
                             break
 
                     package_version["last_version"] = version_list[0]
@@ -256,7 +266,7 @@ def get_version(package, image_id):
     return package_version
 
 
-def sync_data(imageId=None):
+def sync_data(imageId=None, force=False):
     try:
         mongo_anchore_result = mongo.conn[MONGO_DB_NAME][MONGO_SCAN_RESULT_COLL]
         all_images = mongo_anchore_result.find({}, {"imageId": 1, "created_at": 1}, sort=[('created_at', -1)])
@@ -278,7 +288,7 @@ def sync_data(imageId=None):
                     resp_summaries = []
             all_images_id = map(lambda x: x["imageId"], all_images)
             for image in resp_summaries:
-                if image["imageId"] not in all_images_id:
+                if image["imageId"] not in all_images_id or force == True:
                     risk = {
                         'critical': 0,
                         'high': 0,
@@ -334,6 +344,7 @@ def sync_data(imageId=None):
                                 for k in dependency_list:
                                     if vlun_item["package_name"] in k["child"]:
                                         vlun_item["parents"] = k["parents"]
+                                        vlun_item["group_id"] = k["group_id"]
 
                                 if vlun_item["fix"] == "None":
 
@@ -341,17 +352,20 @@ def sync_data(imageId=None):
                                         try:
                                             if vlun_item["package_type"] == "java":  # get_version只支持java
 
-                                                package_version = get_version(vlun_item["parents"],
+                                                package_version = get_version(vlun_item["group_id"],
+                                                                              vlun_item["parents"],
                                                                               image["imageId"])
                                                 vlun_item["fix"] = package_version["last_version"]
-                                                vlun_item["second_fix_version"] = package_version["second_version"]
+                                                vlun_item["second_fix_version"] = package_version["same_version"]
 
                                             elif vlun_item["package_type"] == "python":
                                                 pass
 
                                             else:
                                                 log.warning(
-                                                    "[%s][%s]包类型未处理：%s" % (vlun_item["package"],vlun_item["package_type"], image["imageId"]))
+                                                    "[%s][%s]包类型未处理：%s" % (
+                                                        vlun_item["package"], vlun_item["package_type"],
+                                                        image["imageId"]))
                                                 vlun_item["fix"] = ""
                                                 vlun_item["second_fix_version"] = ""
                                         except Exception, e:
@@ -376,7 +390,8 @@ def sync_data(imageId=None):
 
                     if image["analysis_status"] == "analyzed" or image["analysis_status"] == "analysis_failed":
                         log.info("添加镜像：%s" % image["imageId"])
-                        mongo_anchore_result.insert_one(image)
+                        mongo_anchore_result.update_one({"imageId": image["imageId"]}, {"$set": image}, upsert=True)
+                        # mongo_anchore_result.insert_one(image)
 
         return True
     except:
@@ -385,5 +400,5 @@ def sync_data(imageId=None):
 
 
 if __name__ == '__main__':
-    sync_data("3b84fb5810e632c89ae2f23a99eeda155dc552db4269fce1be68480c9f799967")
+    sync_data("38084089674d43ef85e607aa761d47a320a709f22b288dd6d70b595a12511f20", force=True)
     # get_version("spring-boot-starter-validation:1.5.9.RELEASE")

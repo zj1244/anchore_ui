@@ -36,7 +36,7 @@
                 <div class="box box-danger">
 
                     <!-- /.box-header -->
-                    <form class="form-horizontal " id="add_sync_form" action="/images_sync?action=add" method='POST' onsubmit="return false;">
+                    <form class="form-horizontal " id="add_sync_form" action="/images_sync?action=add" method='POST' >
 
                         <div class="box-body">
 
@@ -61,7 +61,7 @@
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <!-- /.box-body -->
                         <div class="box-footer">
-                            <input type="submit" class="btn btn-info pull-right" id="add_submit" value="提交" />
+                            <input type="button" class="btn btn-info pull-right" id="add_submit" value="提交" />
 {#                            <button type="button" id="add_submit" class="btn btn-info pull-right">提交</button>#}
                         </div>
                         <!-- /.box-footer -->
