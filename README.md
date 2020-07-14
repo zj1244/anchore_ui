@@ -47,7 +47,6 @@
 首先将`config.py.sample`复制一份重命名为`config.py`
 ```
 # cp anchore_ui/config.py.sample anchore_ui/config.py
-
 ```
 
 然后按照自己的要求修改配置：

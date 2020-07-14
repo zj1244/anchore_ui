@@ -1,20 +1,24 @@
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 
+# 按照实际情况mongodb的相关配置
 MONGO_IP = "192.168.47.1"
 MONGO_PORT = 27017
 MONGO_USER = "root"
 MONGO_PWD = "root"
-
-MONGO_DB_NAME = "images_scan"
-MONGO_SCAN_RESULT_COLL = "anchore_result"
-MONGO_DEP_COLL = "dep_result"
-
+# 按照实际情况修改anchore的相关配置
 ANCHORE_API = "http://192.168.1.1:8228"
 USERNAME = "admin"
 PASSWORD = "foobar"
 
-
-GET_DEPENDENCY_API = "http://127.0.0.1"
+# 以下配置可以保持默认
+MONGO_DB_NAME = "images_scan"
+MONGO_SCAN_RESULT_COLL = "anchore_result"
+MONGO_DEP_COLL = "dep_result"
+WEB_IP = "0.0.0.0"
+WEB_PORT = 8808
+GET_DEPENDENCY_API = "http://127.0.0.1:%s" % WEB_PORT if WEB_IP == "0.0.0.0" else "http://%s:%s" % (WEB_IP, WEB_PORT)
 
 USER_AGENTS = [
     "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",

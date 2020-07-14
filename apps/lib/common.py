@@ -8,6 +8,7 @@ import sys
 import random
 import requests
 import collections
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from tenacity import retry, wait_fixed, stop_after_attempt, before_log
 from config import *
@@ -15,7 +16,7 @@ from apps import mongo, log
 
 reload(sys)
 sys.setdefaultencoding('utf8')
-
+executor = ThreadPoolExecutor(10)
 fix_version = {
 
 }
@@ -172,7 +173,8 @@ def get_project():
                 final_result.append(project_result)
 
             except:
-                sync_data(i["imageId"], force=True)
+                executor.submit(sync_data, imageId=i["imageId"], force=True)
+                # sync_data(imageId=i["imageId"], force=True)
                 log.exception(i)
     return final_result
 
@@ -390,8 +392,8 @@ def sync_data(imageId=None, force=False):
 
                     if image["analysis_status"] == "analyzed" or image["analysis_status"] == "analysis_failed":
                         log.info("添加镜像：%s" % image["imageId"])
-                        mongo_anchore_result.update_one({"imageId": image["imageId"]}, {"$set": image}, upsert=True)
-                        # mongo_anchore_result.insert_one(image)
+                        mongo_anchore_result.update_many({"imageId": image["imageId"]}, {"$set": image}, upsert=True)
+
 
         return True
     except:
