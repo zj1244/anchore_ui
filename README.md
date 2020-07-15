@@ -49,10 +49,18 @@
 # cp anchore_ui/config.py.sample anchore_ui/config.py
 ```
 
-然后按照自己的要求修改配置：
+然后修改config.py里的配置信息：
 
 ```
-
+# 按照实际情况mongodb的相关配置
+MONGO_IP = "192.168.47.1"
+MONGO_PORT = 27017
+MONGO_USER = "root"
+MONGO_PWD = "root"
+# 按照实际情况修改anchore的相关配置
+ANCHORE_API = "http://192.168.1.1:8228"
+ANCHORE_USERNAME = "admin"
+PASSWORD = "foobar"
 ```
 
 #### 4. 启动
@@ -63,3 +71,14 @@
 # python run.py
 ```
 
+### 容器化部署
+
+推荐使用外部mongodb来进行存储
+
+#### 1. 构建镜像
+
+新建个docker-compose.yml文件，复制粘贴如下内容，并根据实际情况修改mongo配置信息：
+
+```
+
+```

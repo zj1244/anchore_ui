@@ -128,7 +128,7 @@ def get_images_details(image_id=""):
 
 
 def get_pom_file(docker_url=""):
-    result = ""
+    result = "无"
     if docker_url:
         find_result = mongo.conn[MONGO_DB_NAME][MONGO_DEP_COLL].find_one({"docker_url": docker_url})
         if find_result:
@@ -273,7 +273,7 @@ def sync_data(imageId=None, force=False):
         mongo_anchore_result = mongo.conn[MONGO_DB_NAME][MONGO_SCAN_RESULT_COLL]
         all_images = mongo_anchore_result.find({}, {"imageId": 1, "created_at": 1}, sort=[('created_at', -1)])
 
-        resp_summaries = req(ANCHORE_API + "/summaries/imagetags", USERNAME, PASSWORD)
+        resp_summaries = req(ANCHORE_API + "/summaries/imagetags", ANCHORE_USERNAME, ANCHORE_PASSWORD)
 
         if resp_summaries:
             if imageId:
@@ -286,7 +286,7 @@ def sync_data(imageId=None, force=False):
             else:
 
                 resp_summaries.sort(key=lambda x: x["created_at"], reverse=True)
-                if resp_summaries[0]["created_at"] == all_images[0]["created_at"]:
+                if all_images.count() and  resp_summaries[0]["created_at"] == all_images[0]["created_at"]:
                     resp_summaries = []
             all_images_id = map(lambda x: x["imageId"], all_images)
             for image in resp_summaries:
@@ -305,7 +305,7 @@ def sync_data(imageId=None, force=False):
                     if image["analysis_status"] == "analyzed":
                         log.info("正在同步:%s" % image["imageId"])
                         resp_vlun = req(ANCHORE_API + "/images/by_id/" + image["imageId"] + "/vuln/all",
-                                        USERNAME, PASSWORD)
+                                        ANCHORE_USERNAME, ANCHORE_PASSWORD)
                         if resp_vlun:
 
                             dependency_list = []
@@ -402,5 +402,5 @@ def sync_data(imageId=None, force=False):
 
 
 if __name__ == '__main__':
-    sync_data("38084089674d43ef85e607aa761d47a320a709f22b288dd6d70b595a12511f20", force=True)
+    sync_data("9f55d67f883db748711d661a477f714ce330eccf303710c3ddc0fdbca1e39e1a")
     # get_version("spring-boot-starter-validation:1.5.9.RELEASE")
