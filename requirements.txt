@@ -5,5 +5,5 @@ APScheduler==3.6.3
 Flask_APScheduler==1.11.0
 Flask==1.0
 requests==2.24.0
-Werkzeug==0.14.1
+Werkzeug==0.15.3
 python-dotenv==0.12.0
