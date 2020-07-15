@@ -1,0 +1,12 @@
+version: '3'
+services:
+  scanner:
+    image: zj1244/anchore_ui:latest
+    restart: always
+    network_mode: "host"
+    environment:
+      # 请修改以下redis和mongodb的配置
+      MONGO_IP: 192.168.47.168
+      MONGO_PORT: 27017
+      MONGO_USER: anchore_ui
+      MONGO_PWD: 123456

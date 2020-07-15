@@ -128,7 +128,7 @@ def get_images_details(image_id=""):
 
 
 def get_pom_file(docker_url=""):
-    result = "无"
+    result = ""
     if docker_url:
         find_result = mongo.conn[MONGO_DB_NAME][MONGO_DEP_COLL].find_one({"docker_url": docker_url})
         if find_result:
