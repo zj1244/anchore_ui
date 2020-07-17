@@ -2,6 +2,8 @@ version: '3'
 services:
   scanner:
     image: zj1244/anchore_ui:latest
+    ports:
+      - "8888:8888"
     restart: always
     network_mode: "host"
     environment:
@@ -10,3 +12,6 @@ services:
       MONGO_PORT: 27017
       MONGO_USER: anchore_ui
       MONGO_PWD: 123456
+      ANCHORE_API: http://192.168.54.13:8228
+      ANCHORE_USERNAME: admin
+      ANCHORE_PASSWORD: foobar

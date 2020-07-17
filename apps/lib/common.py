@@ -179,10 +179,6 @@ def get_project():
     return final_result
 
 
-def save_dependency():
-    pass
-
-
 def get_parents(input_dependency):
     dependency_list = []
     ouput = []

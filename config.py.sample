@@ -3,25 +3,26 @@
 import os
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 
-ACCOUNT = os.getenv("ACCOUNT", "admin")
-PASSWORD = os.getenv("ANCHORE_PASSWORD", "admin")
-
 # 按照实际情况mongodb的相关配置
 MONGO_IP = os.getenv("MONGO_IP", "192.168.1.1")
 MONGO_PORT = int(os.getenv("MONGO_PORT", 27017))
 MONGO_USER = os.getenv("MONGO_USER", "anchore_ui")
 MONGO_PWD = os.getenv("MONGO_PWD", "123456")
 # 按照实际情况修改anchore的相关配置
-ANCHORE_API = "http://192.168.54.13:8228"
+ANCHORE_API = "http://192.168.1.1:8228"
 ANCHORE_USERNAME = "admin"
 ANCHORE_PASSWORD = "foobar"
+
+# 默认登陆密码
+ACCOUNT = os.getenv("ACCOUNT", "admin")
+PASSWORD = os.getenv("ANCHORE_PASSWORD", "admin")
 
 # 以下配置可以保持默认
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "images_scan")
 MONGO_SCAN_RESULT_COLL = os.getenv("MONGO_SCAN_RESULT_COLL", "anchore_result")
 MONGO_DEP_COLL = os.getenv("MONGO_DEP_COLL", "dep_result")
 WEB_IP = "0.0.0.0"
-WEB_PORT = 8808
+WEB_PORT = 8888
 GET_DEPENDENCY_API = "http://127.0.0.1:%s" % WEB_PORT if WEB_IP == "0.0.0.0" else "http://%s:%s" % (WEB_IP, WEB_PORT)
 
 USER_AGENTS = [
